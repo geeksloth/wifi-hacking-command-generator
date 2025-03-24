@@ -12,6 +12,16 @@ class JSONDatabase:
         self.is_2GHz4 = is_2GHz4
         if not os.path.exists(self.file_path):
             self._create_empty_db()
+        else:
+            # Not ready yet!
+            data = self._read_db()
+            if data:
+                config = next((item for item in data if item['step'] == 0), {})
+                self.session_name = config.get('session_name', self.session_name)
+                self.interface = config.get('interface', self.interface)
+                self.macaddress = config.get('macaddress', self.macaddress)
+                self.channel = config.get('channel', self.channel)
+                self.is_2GHz4 = config.get('is_2GHz4', self.is_2GHz4)
         
 
     def _create_empty_db(self):
@@ -80,13 +90,15 @@ class JSONDatabase:
         self.create(
             {
             "step": 1,
-            "name": "Restart managing service",
+            "name": "Scan interfaces",
             "commands": [
-                "sudo systemctl start NetworkManager.service",
-                "sudo systemctl start wpa_supplicant.service"
+                "sudo iw dev",
+                "iwconfig",
+                "sudo airmon-ng",
+                "sudo airmon-ng check kill",
             ]
             }
-        )
+        )        
         self.create(
             {
             "step": 2,
@@ -144,7 +156,7 @@ class JSONDatabase:
             "step": 7,
             "name": "Convert captured packets to hashcat format",
             "commands": [
-                f"sudo hcxpcaptool -o {self.session_name}_hash.hc22000 {self.session_name}_capture.pcapng",
+                f"sudo hcxpcapngtool -o {self.session_name}_hash.hc22000 {self.session_name}_capture.pcapng",
                 f"sudo hcxpcaptool -z {self.session_name}_hash.16800 {self.session_name}_capture.pcapng"
             ]
             }
@@ -163,22 +175,20 @@ class JSONDatabase:
         self.create(
             {
             "step": 9,
-            "name": "Scan interfaces",
+            "name": "Restart managing service",
             "commands": [
-                "sudo iw dev",
-                "iwconfig",
-                "sudo airmon-ng",
-                "sudo airmon-ng check kill",
+                "sudo systemctl start NetworkManager.service",
+                "sudo systemctl start wpa_supplicant.service"
             ]
             }
-        )
+        )       
         self.create(
             {
             "step": 10,
             "name": "Fix hcxdumptool error",
             "commands": [
                 "sudo apt-get update",
-                "sudo apt-get install libcurl4-openssl-dev libssl-dev zlib1g-dev libpcap-dev",
+                "sudo apt-get install -y libcurl4-openssl-dev libssl-dev zlib1g-dev libpcap-dev",
                 "git clone https://github.com/ZerBea/hcxtools.git",
                 "cd hcxtools",
                 "sudo make && sudo make install",
@@ -212,10 +222,17 @@ class JSONDatabase:
     def flush(self):
         self._create_empty_db()
 
-    def run_command(self, command):
+    def run_command(self, command, new_shell=False):
         try:
-            result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            return result.stdout.decode('utf-8')
+            if new_shell:
+                if os.name == 'posix':
+                    subprocess.Popen(['x-terminal-emulator', '-e', command])
+                else:
+                    subprocess.Popen(['cmd.exe', '/c', 'start', 'cmd.exe', '/k', command])
+                return "Command is running in a new terminal."
+            else:
+                result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                return result.stdout.decode('utf-8')
         except subprocess.CalledProcessError as e:
             return e.stderr.decode('utf-8')
 
@@ -273,6 +290,10 @@ class JSONDatabase:
                     print(f"{i}: {command}")
                 cmd_choice = input("Enter the command number to execute or 'b' to go back: ")
                 if cmd_choice.lower() == 'b':
+                    continue
+                # This still does not work right now.
+                if cmd_choice == '4':
+                    self.run_command(commands[cmd_choice], new_shell=True)
                     continue
                 try:
                     cmd_index = int(cmd_choice)
