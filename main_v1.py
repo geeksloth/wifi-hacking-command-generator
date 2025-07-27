@@ -1,3 +1,72 @@
+#!/usr/bin/env python3
+"""
+WiFi Security Testing Command Generator
+Author: GeekSloth
+
+⚠️  IMPORTANT LEGAL DISCLAIMER ⚠️
+=====================================
+THIS TOOL IS FOR EDUCATIONAL AND ETHICAL SECURITY TESTING PURPOSES ONLY
+
+By using this software, you acknowledge and agree to the following terms:
+- This tool is designed exclusively for educational purposes and legitimate 
+  security testing of your own networks or networks you have explicit 
+  written permission to test
+- UNAUTHORIZED ACCESS TO WIRELESS NETWORKS IS ILLEGAL and may violate 
+  federal, state, and local laws
+- The author assumes NO responsibility for any misuse, damage, or illegal 
+  activities performed with this tool
+- Users are solely responsible for ensuring compliance with all applicable 
+  laws and regulations in their jurisdiction
+- This tool should only be used on networks you own or have explicit 
+  written authorization to test
+- Any malicious or unauthorized use is strictly prohibited and may result 
+  in criminal prosecution
+
+USE AT YOUR OWN RISK. THE AUTHOR DISCLAIMS ALL LIABILITY.
+
+Description:
+============
+A Python-based interactive command generator for WiFi security testing and 
+penetration testing workflows. This tool provides a structured approach to 
+wireless network security assessment through automated command generation 
+and execution.
+
+Features:
+- Interactive menu-driven interface
+- Configurable session parameters (interface, MAC, channel, frequency)
+- JSON-based command database with template support
+- Automated wireless security testing workflow
+- Command execution with output capture
+- Cross-platform compatibility (Linux focus)
+
+Target Platform: Kali Linux / Debian-based Linux distributions
+
+Prerequisites:
+- aircrack-ng suite
+- hashcat
+- hcxtools/hcxdumptool
+- tcpdump
+- iw/wireless-tools
+- Monitor mode capable wireless interface
+
+Usage:
+    python3 main_v1.py
+
+Security Testing Workflow:
+1. Configure session parameters
+2. Scan wireless interfaces
+3. Stop network management services
+4. Enable monitor mode
+5. Discover target networks
+6. Create BPF packet filters
+7. Capture wireless packets
+8. Extract authentication hashes
+9. Perform cryptographic analysis
+10. Restore network services
+
+WARNING: Only use on networks you own or have explicit permission to test!
+"""
+
 import json
 import os
 import subprocess
